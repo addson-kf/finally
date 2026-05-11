@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>一条高铁改变一座城：福州—厦门—深圳城市发展故事地图</title>
+
+  <!-- Leaflet 地图库：不需要申请 Key -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      background: #08111f;
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    .app {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(55, 130, 255, 0.22), transparent 28%),
+        radial-gradient(circle at 80% 80%, rgba(0, 220, 255, 0.12), transparent 30%),
+        #08111f;
+    }
+
+    .story-panel {
+      width: 38%;
+      min-width: 420px;
+      height: 100vh;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      z-index: 999;
+      background: linear-gradient(180deg, rgba(10, 22, 43, 0.96), rgba(8, 17, 31, 0.88));
+      border-right: 1px solid rgba(120, 180, 255, 0.25);
+      box-shadow: 10px 0 40px rgba(0, 0, 0, 0.35);
+    }
+
+    .tag {
+      width: fit-content;
+      padding: 6px 14px;
+      border: 1px solid rgba(97, 196, 255, 0.7);
+      border-radius: 999px;
+      color: #8bdcff;
+      font-size: 14px;
+      letter-spacing: 1px;
+      background: rgba(50, 130, 255, 0.12);
+    }
+
+    h1 {
+      margin: 18px 0 10px;
+      font-size: 34px;
+      line-height: 1.25;
+      letter-spacing: 1px;
+    }
+
+    .subtitle {
+      color: #b9c9dd;
+      line-height: 1.8;
+      font-size: 15px;
+      margin-bottom: 20px;
+    }
+
+    .chapter-card {
+      padding: 24px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(149, 204, 255, 0.22);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
+      min-height: 300px;
+    }
+
+    .chapter-index {
+      font-size: 14px;
+      color: #73d4ff;
+      margin-bottom: 10px;
+    }
+
+    .chapter-title {
+      font-size: 25px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .chapter-text {
+      color: #d7e7f6;
+      line-height: 1.9;
+      font-size: 16px;
+      min-height: 110px;
+    }
+
+    .data-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .data-box {
+      padding: 14px 10px;
+      border-radius: 16px;
+      text-align: center;
+      background: rgba(24, 104, 190, 0.2);
+      border: 1px solid rgba(110, 195, 255, 0.28);
+    }
+
+    .data-box strong {
+      display: block;
+      font-size: 19px;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+
+    .data-box span {
+      color: #a9c8e8;
+      font-size: 13px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      color: #ffffff;
+      border-radius: 14px;
+      padding: 12px 18px;
+      font-size: 15px;
+      transition: 0.25s;
+      background: linear-gradient(135deg, #137cff, #00c2ff);
+      box-shadow: 0 8px 24px rgba(0, 144, 255, 0.26);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0, 180, 255, 0.38);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(140, 210, 255, 0.3);
+      box-shadow: none;
+    }
+
+    .layer-panel {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid rgba(149, 204, 255, 0.18);
+    }
+
+    .layer-title {
+      color: #9ddcff;
+      font-size: 15px;
+      margin-bottom: 12px;
+    }
+
+    .footer-note {
+      color: #7f97b0;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-top: 14px;
+    }
+
+    #map {
+      flex: 1;
+      height: 100vh;
+      background: #0b1b2b;
+    }
+
+    .city-marker {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #00d5ff;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 18px rgba(0, 213, 255, 0.95);
+    }
+
+    .city-label {
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(7, 20, 38, 0.82);
+      color: #ffffff;
+      border: 1px solid rgba(130, 210, 255, 0.55);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: rgba(7, 20, 38, 0.94);
+      color: #fff;
+      border-radius: 16px;
+      border: 1px solid rgba(97, 196, 255, 0.4);
+    }
+
+    .leaflet-popup-tip {
+      background: rgba(7, 20, 38, 0.94);
+    }
+
+    .popup-title {
+      font-weight: 700;
+      font-size: 16px;
+      color: #85dfff;
+      margin-bottom: 6px;
+    }
+
+    .popup-text {
+      color: #d6e8f9;
+      line-height: 1.6;
+    }
+
+    .legend {
+      position: absolute;
+      right: 22px;
+      bottom: 22px;
+      z-index: 1000;
+      background: rgba(7, 20, 38, 0.88);
+      color: #ffffff;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(130, 210, 255, 0.4);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    .legend-line {
+      display: inline-block;
+      width: 32px;
+      height: 4px;
+      border-radius: 99px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .blue-line {
+      background: #00c2ff;
+    }
+
+    .gray-line {
+      background: #9aa6b2;
+      border-top: 2px dashed #ffffff;
+    }
+
+    .yellow-line {
+      background: #ffd166;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        overflow: auto;
+      }
+
+      .app {
+        flex-direction: column;
+        height: auto;
+      }
+
+      .story-panel {
+        width: 100%;
+        min-width: 0;
+        height: auto;
+      }
+
+      #map {
+        height: 65vh;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="story-panel">
+      <div>
+        <div class="tag">空间叙事 · 高铁城市走廊</div>
+        <h1>一条高铁改变一座城</h1>
+        <p class="subtitle">
+          以福州—厦门—深圳为主线，用地图缩放、路线漫游和图层切换，讲述东南沿海城市如何被高铁重新连接。
+        </p>
+
+        <div class="chapter-card">
+          <div class="chapter-index" id="chapterIndex">第 1 章 / 共 5 章</div>
+          <div class="chapter-title" id="chapterTitle">过去的距离</div>
+          <div class="chapter-text" id="chapterText">
+            在高铁大规模建设之前，福州、厦门、深圳之间的联系主要依靠普通铁路、公路和航空。城市虽然同处东南沿海，但空间距离仍然明显。
+          </div>
+
+          <div class="data-row">
+            <div class="data-box">
+              <strong id="dataOne">旧交通</strong>
+              <span>叙事阶段</span>
+            </div>
+            <div class="data-box">
+              <strong id="dataTwo">灰色虚线</strong>
+              <span>地图表达</span>
+            </div>
+            <div class="data-box">
+              <strong id="dataThree">距离感</strong>
+              <span>核心关键词</span>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button onclick="prevChapter()">上一章</button>
+            <button onclick="nextChapter()">下一章</button>
+            <button class="btn-secondary" onclick="resetStory()">重新开始</button>
+          </div>
+        </div>
+
+        <div class="layer-panel">
+          <div class="layer-title">图层切换：让故事依赖地图变化推进</div>
+          <div class="btn-group">
+            <button class="btn-secondary" onclick="showOldLayer()">旧交通格局</button>
+            <button class="btn-secondary" onclick="showRailLayer()">高铁线路格局</button>
+            <button class="btn-secondary" onclick="showCityLayer()">城市节点格局</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        提交说明：本作品以地图为主视觉，故事推进依赖地图的缩放、漫游、路线显示和图层切换；文字、数据卡片和弹窗仅作为辅助说明。
+      </div>
+    </aside>
+
+    <main id="map"></main>
+
+    <div class="legend">
+      <div><span class="legend-line gray-line"></span>旧交通联系</div>
+      <div><span class="legend-line blue-line"></span>高铁线路</div>
+      <div><span class="legend-line yellow-line"></span>城市节点</div>
+    </div>
+  </div>
+
+  <script>
+    const cities = {
+      fuzhou: {
+        name: "福州",
+        coord: [26.0745, 119.2965],
+        desc: "福建省会城市，是沿海高铁走廊北端的重要节点。"
+      },
+      putian: {
+        name: "莆田",
+        coord: [25.4541, 119.0077],
+        desc: "位于福州与泉州之间，是福建沿海城市联系中的过渡节点。"
+      },
+      quanzhou: {
+        name: "泉州",
+        coord: [24.8741, 118.6757],
+        desc: "海上丝绸之路重要城市，高铁强化了其与周边城市的联系。"
+      },
+      xiamen: {
+        name: "厦门",
+        coord: [24.4798, 118.0894],
+        desc: "福建沿海重要中心城市，是福厦高铁与厦深铁路的衔接点。"
+      },
+      zhangzhou: {
+        name: "漳州",
+        coord: [24.5130, 117.6471],
+        desc: "位于厦门西侧，是福建南部城市联系的重要节点。"
+      },
+      shantou: {
+        name: "汕头",
+        coord: [23.3535, 116.6822],
+        desc: "粤东中心城市，是厦深铁路进入广东后的重要节点。"
+      },
+      shenzhen: {
+        name: "深圳",
+        coord: [22.5431, 114.0579],
+        desc: "粤港澳大湾区核心城市，高铁让其与福建沿海城市联系更紧密。"
+      }
+    };
+
+    const chapters = [
+      {
+        title: "过去的距离",
+        text: "在高铁大规模建设之前，福州、厦门、深圳之间的联系主要依靠普通铁路、公路和航空。城市虽然同处东南沿海，但空间距离仍然明显。",
+        center: [24.3, 117.5],
+        zoom: 7,
+        layer: "old",
+        data: ["旧交通", "灰色虚线", "距离感"]
+      },
+      {
+        title: "福厦高铁连接城市",
+        text: "福厦高铁让福建沿海城市被更紧密地串联起来。福州、莆田、泉州、厦门之间的出行时间被压缩，城市联系明显增强。",
+        center: [25.1, 118.8],
+        zoom: 8,
+        layer: "railNorth",
+        data: ["福州—厦门", "路线亮起", "城市串联"]
+      },
+      {
+        title: "厦深铁路继续向南",
+        text: "厦深铁路进一步把福建沿海与粤港澳大湾区连接起来，厦门、潮汕、深圳之间形成更加紧密的经济和人员流动通道。",
+        center: [23.4, 116.2],
+        zoom: 7,
+        layer: "railSouth",
+        data: ["厦门—深圳", "南下延伸", "湾区连接"]
+      },
+      {
+        title: "图层对比：从点到线",
+        text: "通过图层切换，可以看到交通方式变化后，城市节点之间的联系从点状分布转向线性串联，高铁线路成为推动城市联系的重要空间骨架。",
+        center: [24.1, 117.1],
+        zoom: 7,
+        layer: "all",
+        data: ["三类图层", "对比呈现", "空间骨架"]
+      },
+      {
+        title: "结尾：城市走廊形成",
+        text: "一条高铁改变的不只是出行时间，更改变了城市之间的空间关系。沿海城市从彼此分散的节点，逐渐变成一条联系紧密的城市走廊。",
+        center: [24.2, 117.2],
+        zoom: 7,
+        layer: "all",
+        data: ["完整线路", "沿海走廊", "城市网络"]
+      }
+    ];
+
+    let currentChapter = 0;
+
+    const map = L.map("map", {
+      zoomControl: true,
+      scrollWheelZoom: true
+    }).setView([24.3, 117.5], 7);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "© OpenStreetMap contributors"
+    }).addTo(map);
+
+    const cityIcon = L.divIcon({
+      className: "",
+      html: '<div class="city-marker"></div>',
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+
+    const labelIcon = (name) => L.divIcon({
+      className: "",
+      html: `<div class="city-label">${name}</div>`,
+      iconSize: [80, 26],
+      iconAnchor: [38, -10]
+    });
+
+    const cityMarkers = [];
+    Object.values(cities).forEach(city => {
+      const marker = L.marker(city.coord, { icon: cityIcon })
+        .bindPopup(`
+          <div class="popup-title">${city.name}</div>
+          <div class="popup-text">${city.desc}</div>
+        `);
+
+      const label = L.marker(city.coord, { icon: labelIcon(city.name), interactive: false });
+
+      cityMarkers.push(marker, label);
+      marker.addTo(map);
+      label.addTo(map);
+    });
+
+    const oldRoute = L.polyline(
+      [cities.fuzhou.coord, cities.xiamen.coord, cities.shenzhen.coord],
+      {
+        color: "#9aa6b2",
+        weight: 4,
+        opacity: 0.75,
+        dashArray: "10, 12"
+      }
+    ).addTo(map);
+
+    const railNorth = L.polyline(
+      [cities.fuzhou.coord, cities.putian.coord, cities.quanzhou.coord, cities.xiamen.coord],
+      {
+        color: "#00c2ff",
+        weight: 6,
+        opacity: 0.95
+      }
+    );
+
+    const railSouth = L.polyline(
+      [cities.xiamen.coord, cities.zhangzhou.coord, cities.shantou.coord, cities.shenzhen.coord],
+      {
+        color: "#00f0ff",
+        weight: 6,
+        opacity: 0.95
+      }
+    );
+
+    const cityCircleLayer = L.layerGroup(
+      Object.values(cities).map(city =>
+        L.circle(city.coord, {
+          radius: city.name === "深圳" || city.name === "厦门" || city.name === "福州" ? 26000 : 18000,
+          color: "#ffd166",
+          fillColor: "#ffd166",
+          fillOpacity: 0.18,
+          weight: 2
+        }).bindPopup(`
+          <div class="popup-title">${city.name}城市节点</div>
+          <div class="popup-text">该节点在高铁走廊中承担人员流动、旅游联系与经济联系功能。</div>
+        `)
+      )
+    );
+
+    function clearStoryLayers() {
+      map.removeLayer(oldRoute);
+      map.removeLayer(railNorth);
+      map.removeLayer(railSouth);
+      map.removeLayer(cityCircleLayer);
+    }
+
+    function showOldLayer() {
+      clearStoryLayers();
+      oldRoute.addTo(map);
+    }
+
+    function showRailLayer() {
+      clearStoryLayers();
+      railNorth.addTo(map);
+      railSouth.addTo(map);
+    }
+
+    function showCityLayer() {
+      clearStoryLayers();
+      cityCircleLayer.addTo(map);
+      railNorth.addTo(map);
+      railSouth.addTo(map);
+    }
+
+    function applyLayer(layer) {
+      clearStoryLayers();
+
+      if (layer === "old") {
+        oldRoute.addTo(map);
+      } else if (layer === "railNorth") {
+        oldRoute.addTo(map);
+        railNorth.addTo(map);
+      } else if (layer === "railSouth") {
+        railNorth.addTo(map);
+        railSouth.addTo(map);
+      } else if (layer === "all") {
+        railNorth.addTo(map);
+        railSouth.addTo(map);
+        cityCircleLayer.addTo(map);
+      }
+    }
+
+    function updateChapter() {
+      const chapter = chapters[currentChapter];
+
+      document.getElementById("chapterIndex").innerText = `第 ${currentChapter + 1} 章 / 共 ${chapters.length} 章`;
+      document.getElementById("chapterTitle").innerText = chapter.title;
+      document.getElementById("chapterText").innerText = chapter.text;
+      document.getElementById("dataOne").innerText = chapter.data[0];
+      document.getElementById("dataTwo").innerText = chapter.data[1];
+      document.getElementById("dataThree").innerText = chapter.data[2];
+
+      map.flyTo(chapter.center, chapter.zoom, {
+        animate: true,
+        duration: 1.4
+      });
+
+      applyLayer(chapter.layer);
+    }
+
+    function nextChapter() {
+      if (currentChapter < chapters.length - 1) {
+        currentChapter++;
+      } else {
+        currentChapter = 0;
+      }
+      updateChapter();
+    }
+
+    function prevChapter() {
+      if (currentChapter > 0) {
+        currentChapter--;
+      } else {
+        currentChapter = chapters.length - 1;
+      }
+      updateChapter();
+    }
+
+    function resetStory() {
+      currentChapter = 0;
+      updateChapter();
+    }
+
+    updateChapter();
+  </script>
+</body>
+</html>
